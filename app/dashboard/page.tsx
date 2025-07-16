@@ -4,7 +4,10 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AlertTriangle, Search, Calendar, Plus } from "lucide-react"
 import Link from "next/link"
 import { endpoints } from "@/contexts/endpoints"
 
@@ -12,21 +15,23 @@ interface Report {
   id: string
   title: string
   description: string
+  type: string
   status: string
   createdAt: string
-  reportedBy?: string
 }
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterType, setFilterType] = useState("all")
 
   useEffect(() => {
-    fetchRecentReports()
+    fetchReports()
   }, [])
 
-  const fetchRecentReports = async () => {
+  const fetchReports = async () => {
     try {
       const token = localStorage.getItem("token")
       const response = await fetch(endpoints.GET_ALL_REPORTS, {
@@ -47,37 +52,46 @@ export default function DashboardPage() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "resolved":
-        return "bg-green-100 text-green-800"
-      case "investigating":
-        return "bg-blue-100 text-blue-800"
-      case "verified":
+    switch (status) {
+      case "open":
         return "bg-red-100 text-red-800"
-      case "rejected":
-        return "bg-gray-100 text-gray-800"
+      case "in-progress":
+        return "bg-yellow-100 text-yellow-800"
+      case "closed":
+        return "bg-green-100 text-green-800"
+      case "pending":
+        return "bg-blue-100 text-blue-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 1) return "1 day ago"
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 14) return "1 week ago"
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    return date.toLocaleDateString()
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "investment_scam":
+        return "bg-red-100 text-red-800"
+      case "phishing":
+        return "bg-orange-100 text-orange-800"
+      case "romance_scam":
+        return "bg-pink-100 text-pink-800"
+      case "lottery_scam":
+        return "bg-purple-100 text-purple-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
   }
+
+  const filteredReports = reports.filter((report) => {
+    const matchesSearch =
+      report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesType = filterType === "all" || report.type === filterType
+    return matchesSearch && matchesType
+  })
 
   return (
     <div className="space-y-6">
+      {/* Welcome Section */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.name}!</h1>
         <p className="text-gray-600">Here's what's happening with scam reports today.</p>
@@ -93,45 +107,80 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Recent Reports */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className="h-5 w-5 mr-2" />
-            Recent Reports
-          </CardTitle>
-          <CardDescription>Latest scam reports from all users</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Community Reports Section */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">Community Reports</h2>
+          <p className="text-gray-600">Browse all scam reports from the community.</p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search reports..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="investment_scam">Investment Scam</SelectItem>
+              <SelectItem value="phishing">Phishing</SelectItem>
+              <SelectItem value="romance_scam">Romance Scam</SelectItem>
+              <SelectItem value="lottery_scam">Lottery Scam</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Reports Grid */}
+        <div className="grid gap-6">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
             </div>
-          ) : reports.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No recent reports found
-            </div>
+          ) : filteredReports.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <AlertTriangle className="h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-600">No reports found matching your criteria.</p>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="space-y-4">
-              {reports.map((report) => (
-                <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium">{report.title}</p>
-                    <p className="text-sm text-gray-600 mt-1">{report.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Reported {formatDate(report.createdAt)}
-                      {report.reportedBy && ` by ${report.reportedBy}`}
-                    </p>
+            filteredReports.map((report) => (
+              <Card key={report.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <CardTitle className="text-lg">{report.title}</CardTitle>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={getTypeColor(report.type)}>{report.type}</Badge>
+                        <Badge className={getStatusColor(report.status)}>{report.status.toUpperCase()}</Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {new Date(report.createdAt).toLocaleDateString()}
+                    </div>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ml-4 ${getStatusColor(report.status)}`}>
-                    {report.status}
-                  </span>
-                </div>
-              ))}
-            </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-700">
+                    {report.description.length > 200 ? `${report.description.substring(0, 200)}...` : report.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

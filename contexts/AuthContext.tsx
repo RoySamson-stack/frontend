@@ -3,7 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import {endpoints} from "./endpoints"
+import { endpoints } from "./endpoints"
 
 interface User {
   id: string
@@ -18,6 +18,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
   loading: boolean
+  checkAuthAndLogout: (response: Response) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -36,6 +37,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setLoading(false)
   }, [])
+
+  const logout = () => {
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    setUser(null)
+    router.push("/")
+  }
+
+  // Function to check if response indicates authentication failure and auto-logout
+  const checkAuthAndLogout = (response: Response): boolean => {
+    if (response.status === 401) {
+      logout()
+      return true
+    }
+    return false
+  }
 
   const login = async (email: string, password: string) => {
     try {
@@ -94,14 +111,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    setUser(null)
-    router.push("/")
-  }
-
-  return <AuthContext.Provider value={{ user, login, register, logout, loading }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        login, 
+        register, 
+        logout, 
+        loading, 
+        checkAuthAndLogout 
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
@@ -110,4 +133,29 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
+}
+
+export function useAuthenticatedFetch() {
+  const { checkAuthAndLogout } = useAuth()
+
+  const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem("token")
+    
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        "Authorization": token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (checkAuthAndLogout(response)) {
+      throw new Error("Authentication failed - logged out")
+    }
+
+    return response
+  }
+
+  return authenticatedFetch
 }

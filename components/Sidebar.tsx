@@ -21,11 +21,11 @@ const sidebarItems = [
     href: "/dashboard/my-reports",
     icon: FileText,
   },
-  {
-    title: "All Reports",
-    href: "/dashboard/reports",
-    icon: AlertTriangle,
-  },
+  // {
+  //   title: "All Reports",
+  //   href: "/dashboard/reports",
+  //   icon: AlertTriangle,
+  // },
 ]
 
 export function Sidebar() {
