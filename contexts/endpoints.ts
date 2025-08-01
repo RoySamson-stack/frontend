@@ -8,20 +8,21 @@ export  const endpoints = {
     GET_USER_PROFILE: `${baseUrl}/auth/users/:id`,
     LOGIN: `${baseUrl}/auth/login`,
     UPDATE_USER_PROFILE: `${baseUrl}/auth/users/:id`,
-    GET_USER_REPORTS: `${baseUrl}/auth/users/:userId/reports`,
+    GET_USER_REPORTS: `${baseUrl}/reports/my-reports`,
     TOKEN: `${baseUrl}/auth/refresh-token`,
     FORGOT_PASSWORD: `${baseUrl}/auth/forgot-password`,
     RESET_PASSWORD: `${baseUrl}/auth/reset-password`,
     LOGOUT: `${baseUrl}/auth/logout`,
 
     // REPORTS ENDPOINTS
-    CREATE_REPORT: `${baseUrl}/reports`,
-    GET_ALL_REPORTS: `${baseUrl}/reports`,
+    CREATE_REPORT: `${baseUrl}/reports/create`,
+    GET_ALL_REPORTS: `${baseUrl}/reports/allReports`,
     GET_TRENDING_REPORTS: `${baseUrl}/reports/trending`,
     GET_REPORT_BY_ID: `${baseUrl}/reports/:id`,
     UPDATE_REPORT_STATUS: `${baseUrl}/reports`,
     VOTE_ON_REPORT: `${baseUrl}/reports/:id/vote`,
-    DELETE_REPORT: `${baseUrl}/reports/:id`,
+    EDIT_REPORT: `${baseUrl}/reports/:id/update`,
+    DELETE_REPORT: `${baseUrl}/reports`,
 
     // NOTIFICATIONS ENDPOINTS
     GET_USER_NOTIFICATIONS: `${baseUrl}/users/:id/notifications`,

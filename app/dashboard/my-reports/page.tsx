@@ -4,7 +4,12 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, Calendar, Edit, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AlertTriangle, Calendar, Edit, Trash2, Save, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { endpoints } from "@/contexts/endpoints"
@@ -16,11 +21,22 @@ interface Report {
   type: string
   status: string
   createdAt: string
+  reporterId: string
+}
+
+interface EditFormData {
+  title: string
+  description: string
+  type: string
 }
 
 export default function MyReportsPage() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingReport, setEditingReport] = useState<Report | null>(null)
+  const [editForm, setEditForm] = useState<EditFormData>({ title: "", description: "", type: "" })
+  const [saving, setSaving] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -45,6 +61,64 @@ export default function MyReportsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleEditClick = (report: Report) => {
+    setEditingReport(report)
+    setEditForm({
+      title: report.title,
+      description: report.description,
+      type: report.type
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleEditSubmit = async () => {
+    if (!editingReport) return
+
+    setSaving(true)
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch(`${endpoints.UPDATE_REPORT}/${editingReport.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editForm),
+      })
+
+      if (response.ok) {
+        const updatedReport = await response.json()
+        setReports(reports.map(report => 
+          report.id === editingReport.id 
+            ? { ...report, ...editForm }
+            : report
+        ))
+        setIsEditDialogOpen(false)
+        setEditingReport(null)
+        toast({
+          title: "Report updated",
+          description: "Your report has been updated successfully.",
+        })
+      } else {
+        throw new Error("Failed to update report")
+      }
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Failed to update the report. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEditCancel = () => {
+    setIsEditDialogOpen(false)
+    setEditingReport(null)
+    setEditForm({ title: "", description: "", type: "" })
   }
 
   const deleteReport = async (reportId: string) => {
@@ -103,6 +177,14 @@ export default function MyReportsPage() {
     }
   }
 
+  const scamTypes = [
+    { value: "investment_scam", label: "Investment Scam" },
+    { value: "phishing", label: "Phishing" },
+    { value: "romance_scam", label: "Romance Scam" },
+    { value: "lottery_scam", label: "Lottery Scam" },
+    { value: "other", label: "Other" }
+  ]
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -159,7 +241,11 @@ export default function MyReportsPage() {
                 </CardDescription>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditClick(report)}
+                    >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
                     </Button>
@@ -179,6 +265,79 @@ export default function MyReportsPage() {
           ))
         )}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Report</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                placeholder="Report title"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-type">Scam Type</Label>
+              <Select 
+                value={editForm.type} 
+                onValueChange={(value) => setEditForm({ ...editForm, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select scam type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {scamTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Describe the scam incident..."
+                rows={6}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={handleEditCancel}
+              disabled={saving}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleEditSubmit}
+              disabled={saving || !editForm.title || !editForm.description || !editForm.type}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {saving ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

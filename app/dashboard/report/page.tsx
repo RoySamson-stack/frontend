@@ -20,6 +20,9 @@ export default function ReportScamPage() {
     description: "",
     type: "",
     status: "pending",
+    scammer_name: "",
+    scammer_phone: "",
+    // scammer_email: "",
   })
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -110,7 +113,36 @@ export default function ReportScamPage() {
                 </SelectContent>
               </Select>
             </div>
-
+            <div className="space-y-2">
+              <Label htmlFor="scammer_name">Scammer name </Label>
+              <Input
+                id="scammer_name"
+                value={formData.scammer_name}
+                onChange={(e) => setFormData({ ...formData, scammer_name: e.target.value })}
+                placeholder="Name of the scammer"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="scammer_phone">Scammer phone </Label>
+              <Input
+                id="scammer_phone"
+                value={formData.scammer_phone}
+                onChange={(e) => setFormData({ ...formData, scammer_phone: e.target.value })}
+                placeholder="Phone number of the scammer"
+                // required
+              />
+            </div>
+            {/* <div className="space-y-2">
+              <Label htmlFor="scammer_email">Scammer email </Label>
+              <Input
+                id="scammer_email"
+                value={formData.scammer_email}
+                onChange={(e) => setFormData({ ...formData, scammer_email: e.target.value })}
+                placeholder="Email address of the scammer"
+                // required
+              /> */}
+            {/* </div> */}
             <div className="space-y-2">
               <Label htmlFor="description">Detailed Description *</Label>
               <Textarea
@@ -119,7 +151,7 @@ export default function ReportScamPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Provide detailed information about the scam, including how it happened, what was promised, any contact information of the scammer, etc."
                 rows={6}
-                required
+                // required
               />
             </div>
 
