@@ -1,6 +1,6 @@
 
-export const baseUrl = process.env.REACT_APP_API_URL || 'http://192.168.250.230:5000/v1';
-
+// export const baseUrl = process.env.REACT_APP_API_URL || 'http://192.168.250.230:5000/v1';
+export const baseUrl = process.env.REACT_APP_API_URL || ' http://192.168.100.4:5000/v1/';
 
 export  const endpoints = {
     //USER ENDPOINTS
